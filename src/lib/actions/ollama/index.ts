@@ -1,12 +1,12 @@
 "use server";
 
-const DEEPSEEK_BASE_URL = "http://localhost:11434";
+import { OLLAMA_BASE_URL, OLLAMA_MODEL, STREAM } from "@/configs";
 
 export async function postMessage(prompt: string) {
-	const response = await fetch(`${DEEPSEEK_BASE_URL}/api/generate`, {
+	const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ model: "deepseek-r1:1.5b", prompt, stream: true }),
+		body: JSON.stringify({ model: `${OLLAMA_MODEL}`, prompt, stream: STREAM }),
 	});
 
 	if (!response.body) throw new Error("No response body from Ollama");

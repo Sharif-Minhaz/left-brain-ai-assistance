@@ -11,6 +11,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
+import { cn } from "@/lib/utils";
+import Intro from "./Intro";
 
 export default function StreamingChat() {
 	const [input, setInput] = useState("");
@@ -79,9 +81,17 @@ export default function StreamingChat() {
 	};
 
 	return (
-		<div className="flex flex-col h-screen max-w-4xl mx-auto p-4 bg-gray-50 dark:bg-gray-900">
+		<div
+			className={cn(
+				"flex flex-col h-screen max-w-4xl mx-auto p-4 bg-gray-50 dark:bg-gray-900",
+				!hasInteracted && "justify-center items-center"
+			)}
+		>
 			<Card
-				className={`flex-grow overflow-hidden h-full mb-4 border-0 shadow-lg bg-white dark:bg-gray-800`}
+				className={cn(
+					`flex-grow overflow-hidden h-full mb-4 border-0 shadow-lg bg-white dark:bg-gray-800`,
+					!hasInteracted && "hidden"
+				)}
 			>
 				<CardContent className="h-full p-0">
 					<ScrollArea className="h-full flex items-center">
@@ -132,11 +142,15 @@ export default function StreamingChat() {
 					</ScrollArea>
 				</CardContent>
 			</Card>
+
+			{!hasInteracted && <Intro />}
+
 			<form
 				onSubmit={handleSubmit}
-				className={`${
-					hasInteracted ? "sticky bottom-0 bg-gray-50 dark:bg-gray-900 pt-2" : "mt-auto"
-				}`}
+				className={cn(
+					"bg-gray-50 dark:bg-gray-900 pt-2 w-full",
+					hasInteracted ? "sticky bottom-0" : "max-w-[550px]"
+				)}
 			>
 				<div className="flex items-end space-x-2 relative">
 					<Textarea
@@ -145,9 +159,11 @@ export default function StreamingChat() {
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}
 						placeholder="Type your message..."
-						className="rounded-[12px] flex-grow resize-none bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600"
+						className={cn(
+							"min-h-[5rem] text-[28px] max-h-[10rem] rounded-[12px] flex-grow resize-none bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 outline-none",
+							!hasInteracted && "max-h-[120px] h-[112px] rounded-[20px]"
+						)}
 						rows={1}
-						style={{ minHeight: "5rem", maxHeight: "10rem" }}
 					/>
 					<Button
 						type="submit"
