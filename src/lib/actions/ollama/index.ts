@@ -1,12 +1,12 @@
 "use server";
 
-import { OLLAMA_BASE_URL, OLLAMA_MODEL, STREAM } from "@/configs";
+import { OLLAMA_BASE_URL, OLLAMA_MODEL } from "@/configs";
 
 export async function postMessage(prompt: string) {
 	const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ model: `${OLLAMA_MODEL}`, prompt, stream: STREAM }),
+		body: JSON.stringify({ model: `${OLLAMA_MODEL}`, prompt, stream: true }),
 	});
 
 	if (!response.body) throw new Error("No response body from Ollama");
