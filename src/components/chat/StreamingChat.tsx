@@ -259,6 +259,11 @@ export default function StreamingChat() {
 					</div>
 				</div>
 			</form>
+			{!hasInteracted && (
+				<div className="mt-3 text-[12px] text-gray-500 dark:text-gray-400">
+					<p>Ai can make mistake, verify sensitive information</p>
+				</div>
+			)}
 		</div>
 	);
 }
