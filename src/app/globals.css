@@ -81,3 +81,28 @@ think {
 pre>div.group pre {
   margin-block: 0;
 }
+
+code.plaintext:not(pre>code.plaintext) {
+  background: #ebebeb;
+  padding: 0px 3px;
+  border-radius: 5px;
+  display: inline-block;
+  color: #333;
+
+  &::before {
+    content: none;
+  }
+
+  &::after {
+    content: none;
+  }
+}
+
+deep-think {
+  margin-top: -10px !important;
+  color: rgb(114, 114, 114);
+  font-size: 12px;
+  display: block;
+  padding-left: 10px;
+  border-left: 2px solid #ccc;
+}

@@ -179,21 +179,27 @@ export default function StreamingChat() {
 										}`}
 									>
 										{message.role === "user" ? (
-											<User className="w-6 h-6 text-blue-500" />
+											<div className="border flex items-center justify-center w-10 h-10 bg-white rounded-full">
+												<User className="w-6 h-6 text-blue-500" />
+											</div>
 										) : (
-											<Bot className="w-6 h-6 text-green-500" />
+											<div className="border flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
+												<Bot className="w-6 h-6 text-blue-600" />
+											</div>
 										)}
 									</div>
 									<div
 										className={cn(
 											"flex-grow w-full",
-											message.role === "user" ? "justify-end" : "pr-[76px]"
+											message.role === "user"
+												? "justify-end text-ellipsis overflow-hidden"
+												: "pr-[20px]"
 										)}
 									>
 										{message.role === "assistant" ? (
 											<MarkdownViewer content={message.content} />
 										) : (
-											<div className="w-max whitespace-pre-wrap ml-auto">
+											<div className="w-fit mt-2 break-words overflow-hidden text-ellipsis whitespace-pre-wrap ml-auto">
 												{message.content}
 											</div>
 										)}
@@ -223,7 +229,7 @@ export default function StreamingChat() {
 						onKeyDown={handleKeyDown}
 						placeholder="Type your message..."
 						className={cn(
-							"min-h-[5rem] max-h-[15rem] rounded-[12px] flex-grow resize-none bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 outline-none",
+							"md:text-base min-h-[5rem] max-h-[15rem] rounded-[12px] flex-grow resize-none bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 outline-none",
 							!hasInteracted && "max-h-[120px] h-[112px] rounded-[20px]"
 						)}
 						rows={1}
