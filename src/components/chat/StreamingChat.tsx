@@ -24,10 +24,12 @@ export default function StreamingChat() {
 	const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 
 	useEffect(() => {
+		// Scroll to the bottom when messages change
 		if (!manualScrolled) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [messages, manualScrolled]);
 
 	const handleWheel = (event: WheelEvent) => {
+		// Check if the user is scrolling up
 		if (event.deltaY < 0) {
 			setManualScrolled(true);
 		}
@@ -39,6 +41,7 @@ export default function StreamingChat() {
 
 		setIsLoading(true);
 		setHasInteracted(true);
+		// Add the user's message to the messages array
 		setMessages((prev) => [...prev, { role: "user", content: input }]);
 		setInput("");
 		setManualScrolled(false);
@@ -47,10 +50,11 @@ export default function StreamingChat() {
 		const newController = new AbortController();
 		setController(newController);
 
+		// Add a wheel event listener to the window to check for scrolling up later.
 		window.addEventListener("wheel", handleWheel, { passive: true });
 
 		try {
-			// Directly call the Ollama API endpoint.
+			// Send a POST request to the Ollama server.
 			const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -59,6 +63,7 @@ export default function StreamingChat() {
 					prompt: input,
 					stream: true,
 				}),
+				// Pass the new AbortController to the upstream fetch.
 				signal: newController.signal,
 			});
 
@@ -74,9 +79,12 @@ export default function StreamingChat() {
 			setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
 			while (true) {
+				// Read a chunk of the response.
 				const { done, value } = await reader.read();
+				// If the response is done, break out of the loop.
 				if (done) break;
 
+				// If the client aborted the request, stop processing.
 				if (newController.signal.aborted) {
 					console.log("Streaming aborted by user.");
 					break;
@@ -99,11 +107,14 @@ export default function StreamingChat() {
 							fullResponse += json.response;
 							// Update the UI with the latest fullResponse.
 							setMessages((prev) => {
+								// Replace the last assistant message with the full response.
 								const lastMessage = prev[prev.length - 1];
+								// If the last message is an assistant message, update it.
 								if (lastMessage.role === "assistant") {
 									lastMessage.content = fullResponse;
 									return [...prev];
 								}
+								// If the last message is not an assistant message, create a new one.
 								return [...prev, { role: "assistant", content: fullResponse }];
 							});
 						}
@@ -113,16 +124,21 @@ export default function StreamingChat() {
 				}
 			}
 		} catch (error: unknown) {
+			// If the client aborted the request, stop processing.
 			if ((error as Error).name === "AbortError") {
+				// Know that the user stopped streaming.
 				console.log("User stopped streaming.");
 			} else {
+				// Otherwise, handle the error.
 				console.error("Stream error:", error);
+				// Update the UI with an error message.
 				setMessages((prev) => [
 					...prev,
 					{ role: "assistant", content: "Error occurred during streaming" },
 				]);
 			}
 		} finally {
+			// Clean up the controller, erase the input, remove the wheel event listener and set isLoading to false.
 			setIsLoading(false);
 			setInput("");
 			setManualScrolled(false);
@@ -130,7 +146,9 @@ export default function StreamingChat() {
 		}
 	};
 
+	// Function to handle stop action
 	const handleStop = () => {
+		// Abort the current request
 		if (controller) {
 			controller.abort();
 			setController(null);
@@ -139,22 +157,30 @@ export default function StreamingChat() {
 	};
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		// Get the textarea element
 		const textarea = textareaRef.current;
+		// Get the current cursor position
 		const cursorPosition = textarea?.selectionStart || 0;
 		const lines = input.split("\n");
+		// Get the current line index
 		const currentLineIndex = input.substring(0, cursorPosition).split("\n").length - 1;
 
+		// Handle keydown events
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
 			if (input.trim() !== "") {
+				// If the user presses enter, submit the message
 				setMessageHistory((prev: string[]) => [...prev, input]);
 				handleSubmit(event);
 				setInput("");
 				setHistoryIndex(null);
 			}
+			// If the user presses shift + enter, add a newline
 		} else if (event.key === "ArrowUp") {
+			// If the user presses up arrow, go to the previous message
 			if (currentLineIndex === 0 && messageHistory.length > 0) {
 				setHistoryIndex((prev) => {
+					// Find the index of the previous message
 					const newIndex =
 						prev === null ? messageHistory.length - 1 : Math.max(prev - 1, 0);
 					setInput(messageHistory[newIndex]);
@@ -162,8 +188,10 @@ export default function StreamingChat() {
 				});
 			}
 		} else if (event.key === "ArrowDown") {
+			// If the user presses down arrow, go to the next message
 			if (currentLineIndex === lines.length - 1 && historyIndex !== null) {
 				setHistoryIndex((prev) => {
+					// Find the index of the next message
 					const newIndex = prev === messageHistory.length - 1 ? null : prev! + 1;
 					setInput(newIndex === null ? "" : messageHistory[newIndex]);
 					return newIndex;
