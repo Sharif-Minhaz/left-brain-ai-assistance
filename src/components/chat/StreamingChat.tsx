@@ -9,7 +9,7 @@ import { Loader2, User, Bot, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Intro from "./Intro";
 import MarkdownViewer from "./MarkdownViewer";
-import { CLIENT_BASE_URL } from "@/configs";
+import { OLLAMA_BASE_URL, OLLAMA_MODEL } from "@/configs";
 
 export default function StreamingChat() {
 	const [input, setInput] = useState("");
@@ -51,24 +51,32 @@ export default function StreamingChat() {
 		setInput("");
 		setManualScrolled(false);
 
+		// Create a new AbortController for this request.
 		const newController = new AbortController();
 		setController(newController);
 
 		try {
-			const res = await fetch(CLIENT_BASE_URL, {
+			// Directly call the Ollama API endpoint.
+			const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ prompt: input }),
-				signal: newController.signal, // This aborts the client request
+				body: JSON.stringify({
+					model: OLLAMA_MODEL,
+					prompt: input,
+					stream: true,
+				}),
+				signal: newController.signal,
 			});
 
 			if (!res.body) throw new Error("No response from server");
 
+			// Prepare to read the streamed response.
 			const reader = res.body.getReader();
 			const decoder = new TextDecoder();
 			let fullResponse = "";
+			let buffer = "";
 
-			// Add an empty assistant message for streaming content
+			// Add an empty assistant message for streaming content.
 			setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
 			while (true) {
@@ -80,19 +88,35 @@ export default function StreamingChat() {
 					break;
 				}
 
+				// Decode the incoming chunk.
 				const decodedChunk = decoder.decode(value, { stream: true });
+				buffer += decodedChunk;
 
-				fullResponse += decodedChunk;
+				// Ollama returns newline-delimited JSON. Process complete lines.
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || ""; // Save any partial line for the next chunk.
 
-				// Update the last assistant message dynamically
-				setMessages((prev) => {
-					const lastMessage = prev[prev.length - 1];
-					if (lastMessage.role === "assistant") {
-						lastMessage.content = fullResponse;
-						return [...prev];
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const json = JSON.parse(line);
+						if (json.response) {
+							// Append the new piece of response.
+							fullResponse += json.response;
+							// Update the UI with the latest fullResponse.
+							setMessages((prev) => {
+								const lastMessage = prev[prev.length - 1];
+								if (lastMessage.role === "assistant") {
+									lastMessage.content = fullResponse;
+									return [...prev];
+								}
+								return [...prev, { role: "assistant", content: fullResponse }];
+							});
+						}
+					} catch (err) {
+						console.error("JSON parse error:", err);
 					}
-					return [...prev, { role: "assistant", content: fullResponse }];
-				});
+				}
 			}
 		} catch (error: unknown) {
 			if ((error as Error).name === "AbortError") {
@@ -108,7 +132,6 @@ export default function StreamingChat() {
 			setIsLoading(false);
 			setInput("");
 			setManualScrolled(false);
-			// Remove the event listener for wheel
 			window.removeEventListener("wheel", handleWheel);
 		}
 	};
@@ -118,20 +141,18 @@ export default function StreamingChat() {
 			controller.abort();
 			setController(null);
 			setIsLoading(false);
+			window.removeEventListener("wheel", handleWheel);
 		}
 	};
 
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		const textarea = textareaRef.current;
-
-		// Get cursor position
 		const cursorPosition = textarea?.selectionStart || 0;
 		const lines = input.split("\n");
 		const currentLineIndex = input.substring(0, cursorPosition).split("\n").length - 1;
 
 		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault(); // Prevent new line on Enter (only if not Shift+Enter)
-
+			event.preventDefault();
 			if (input.trim() !== "") {
 				setMessageHistory((prev: string[]) => [...prev, input]);
 				handleSubmit(event);
@@ -139,17 +160,15 @@ export default function StreamingChat() {
 				setHistoryIndex(null);
 			}
 		} else if (event.key === "ArrowUp") {
-			// If cursor is on the first line, trigger history recall
 			if (currentLineIndex === 0 && messageHistory.length > 0) {
 				setHistoryIndex((prev) => {
 					const newIndex =
 						prev === null ? messageHistory.length - 1 : Math.max(prev - 1, 0);
-					setInput(messageHistory[newIndex]); // Set input to previous message
+					setInput(messageHistory[newIndex]);
 					return newIndex;
 				});
 			}
 		} else if (event.key === "ArrowDown") {
-			// If cursor is on the last line, move to next history message (or clear)
 			if (currentLineIndex === lines.length - 1 && historyIndex !== null) {
 				setHistoryIndex((prev) => {
 					const newIndex = prev === messageHistory.length - 1 ? null : prev! + 1;
