@@ -28,18 +28,18 @@ export default function StreamingChat() {
 	}, [messages, manualScrolled]);
 
 	useEffect(() => {
-		const handleWheel = (event: WheelEvent) => {
-			if (event.deltaY < 0) {
-				setManualScrolled(true);
-			}
-		};
-
 		window.addEventListener("wheel", handleWheel, { passive: true });
 
 		return () => {
 			window.removeEventListener("wheel", handleWheel);
 		};
 	}, []);
+
+	const handleWheel = (event: WheelEvent) => {
+		if (event.deltaY < 0) {
+			setManualScrolled(true);
+		}
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -108,6 +108,8 @@ export default function StreamingChat() {
 			setIsLoading(false);
 			setInput("");
 			setManualScrolled(false);
+			// Remove the event listener for wheel
+			window.removeEventListener("wheel", handleWheel);
 		}
 	};
 
