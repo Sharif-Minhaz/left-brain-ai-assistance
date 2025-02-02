@@ -27,14 +27,6 @@ export default function StreamingChat() {
 		if (!manualScrolled) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [messages, manualScrolled]);
 
-	useEffect(() => {
-		window.addEventListener("wheel", handleWheel, { passive: true });
-
-		return () => {
-			window.removeEventListener("wheel", handleWheel);
-		};
-	}, []);
-
 	const handleWheel = (event: WheelEvent) => {
 		if (event.deltaY < 0) {
 			setManualScrolled(true);
@@ -54,6 +46,8 @@ export default function StreamingChat() {
 		// Create a new AbortController for this request.
 		const newController = new AbortController();
 		setController(newController);
+
+		window.addEventListener("wheel", handleWheel, { passive: true });
 
 		try {
 			// Directly call the Ollama API endpoint.
@@ -141,7 +135,6 @@ export default function StreamingChat() {
 			controller.abort();
 			setController(null);
 			setIsLoading(false);
-			window.removeEventListener("wheel", handleWheel);
 		}
 	};
 
