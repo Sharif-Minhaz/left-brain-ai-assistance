@@ -1,6 +1,5 @@
 "use client";
 
-import { postMessage } from "@/lib/actions/ollama";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +9,7 @@ import { Loader2, User, Bot, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Intro from "./Intro";
 import MarkdownViewer from "./MarkdownViewer";
+import { CLIENT_BASE_URL } from "@/configs";
 
 export default function StreamingChat() {
 	const [input, setInput] = useState("");
@@ -55,10 +55,17 @@ export default function StreamingChat() {
 		setController(newController);
 
 		try {
-			const stream = await postMessage(input);
-			if (!stream) throw new Error("No response from server");
+			const res = await fetch(CLIENT_BASE_URL, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ prompt: input }),
+				signal: newController.signal, // This aborts the client request
+			});
 
-			const reader = stream.getReader();
+			if (!res.body) throw new Error("No response from server");
+
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
 			let fullResponse = "";
 
 			// Add an empty assistant message for streaming content
@@ -73,9 +80,11 @@ export default function StreamingChat() {
 					break;
 				}
 
-				fullResponse += value;
+				const decodedChunk = decoder.decode(value, { stream: true });
 
-				// Update last assistant message dynamically
+				fullResponse += decodedChunk;
+
+				// Update the last assistant message dynamically
 				setMessages((prev) => {
 					const lastMessage = prev[prev.length - 1];
 					if (lastMessage.role === "assistant") {
